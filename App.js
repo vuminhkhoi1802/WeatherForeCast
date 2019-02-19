@@ -7,44 +7,70 @@
  * @lint-ignore-every XPLATJSCOPYRIGHT1
  */
 
-import React, {Component} from 'react';
-import {Platform, StyleSheet, Text, View} from 'react-native';
+import React, { Component } from "react";
+import { Platform, StyleSheet, Text, View, FlatList } from "react-native";
 
-const instructions = Platform.select({
-  ios: 'Press Cmd+R to reload,\n' + 'Cmd+D or shake for dev menu',
-  android:
-    'Double tap R on your keyboard to reload,\n' +
-    'Shake or press menu button for dev menu',
-});
+import ForecastCard from './components/ForecastCard';
 
-type Props = {};
-export default class App extends Component<Props> {
-  render() {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.welcome}>Welcome to React Native!</Text>
-        <Text style={styles.instructions}>To get started, edit App.js</Text>
-        <Text style={styles.instructions}>{instructions}</Text>
-      </View>
+export default class App extends Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      latitude: 0,
+      longitude: 0,
+      forecast: [],
+      error: ""
+    };
+  }
+
+  componentDidMount(){
+		// Get the user's location
+		this.getLocation();
+	}
+
+  getLocation() {
+    // Get the current location of the user
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        this.setState(
+          prevState => ({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          }),
+          () => {
+            this.getWeather();
+          }
+        );
+      },
+      error => this.setState({ forecast: error.message }),
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
     );
   }
-}
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5FCFF',
-  },
-  welcome: {
-    fontSize: 20,
-    textAlign: 'center',
-    margin: 10,
-  },
-  instructions: {
-    textAlign: 'center',
-    color: '#333333',
-    marginBottom: 5,
-  },
-});
+  getWeather() {
+    // Construct the API url to call
+    let url =
+      "https://api.openweathermap.org/data/2.5/forecast?lat=" +
+      this.state.latitude +
+      "&lon=" +
+      this.state.longitude +
+      "&units=metric&appid=YOUR API KEY HERE";
+
+    // Call the API, and set the state of the weather forecast
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        this.setState((prevState, props) => ({
+          forecast: data
+        }));
+      });
+  }
+
+  render() {
+		return (
+			<FlatList data={this.state.forecast.list} style={{marginTop:20}} keyExtractor={item => item.dt_txt} renderItem={({item}) => <ForecastCard detail={item} location={this.state.forecast.city.name} />} />
+		);
+	}
+
+}
